@@ -24,7 +24,7 @@ const categories: Category[] = [
     id: 'movies',
     name: 'Movies',
     emoji: '🎬',
-    description: 'Create a tier list of classic and modern films',
+    description: 'Create a rank of classic and modern films',
     itemCount: 16,
   },
   {
@@ -61,9 +61,9 @@ export function HomePage({ onSelectCategory }: HomePageProps) {
   return (
     <div className="homepage">
       <div className="homepage-header">
-        <h1>🎯 Tier Maker</h1>
+        <h1>🎯 Rank Maker</h1>
         <p className="homepage-subtitle">
-          Create knowledge graphs by ranking items into tiers
+          Create knowledge graphs by ranking items into ranks
         </p>
       </div>
 
@@ -85,7 +85,7 @@ export function HomePage({ onSelectCategory }: HomePageProps) {
       </div>
 
       <div className="homepage-footer">
-        <p>Select a category to start building your tier list graph</p>
+        <p>Select a category to start building your ranking graph</p>
       </div>
     </div>
   )

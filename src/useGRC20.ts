@@ -103,7 +103,7 @@ export function useGRC20() {
         createdProperties.set('name:STRING', namePropertyId)
         createdProperties.set('rank_type:STRING', rankTypePropertyId)
 
-        // Process entities - assume items already exist, only create TierList
+        // Process entities - assume items already exist, only create RankList
         console.log('🔄 Processing entities...')
         
         // First, generate GRC-20 IDs for existing item entities (they already exist in the graph)
@@ -116,17 +116,17 @@ export function useGRC20() {
           console.log(`   - "${itemEntity.properties.name}": ${itemGrc20Id}`)
         }
         
-        // Create only the TierList entity
-        const tierListEntity = graph.entities.find(e => 'rank_type' in e.properties && e.properties.rank_type === 'weighted_rank')
-        if (tierListEntity) {
-          // Generate a GRC-20 ID for the tier list
-          const tierListGrc20Id = IdUtils.generate()
-          entityIdMap.set(tierListEntity.id, tierListGrc20Id)
+        // Create only the RankList entity
+        const rankListEntity = graph.entities.find(e => 'rank_type' in e.properties && e.properties.rank_type === 'weighted_rank')
+        if (rankListEntity) {
+          // Generate a GRC-20 ID for the rank list
+          const rankListGrc20Id = IdUtils.generate()
+          entityIdMap.set(rankListEntity.id, rankListGrc20Id)
 
-          // Prepare values for the tier list entity
+          // Prepare values for the rank list entity
           const values: Array<{ property: Id; value: string }> = []
           
-          for (const [attrName, attrValue] of Object.entries(tierListEntity.properties)) {
+          for (const [attrName, attrValue] of Object.entries(rankListEntity.properties)) {
             const dataType = getDataType(attrValue)
             const propertyId = getOrCreateProperty(attrName, dataType)
             
@@ -136,9 +136,9 @@ export function useGRC20() {
             })
           }
 
-          // Create tier list entity
+          // Create rank list entity
           const entityResult = Graph.createEntity({
-            id: tierListGrc20Id,
+            id: rankListGrc20Id,
             values,
           })
           
@@ -146,12 +146,12 @@ export function useGRC20() {
           entityResult.ops.forEach(op => {
             allOps.push({
               ...op,
-              _description: `Create TierList entity "${tierListEntity.properties.name}"`,
+              _description: `Create RankList entity "${rankListEntity.properties.name}"`,
             })
           })
           entityOpCount += entityResult.ops.length
           
-          console.log(`✅ Created TierList entity: ${tierListEntity.properties.name}`)
+          console.log(`✅ Created RankList entity: ${rankListEntity.properties.name}`)
         }
 
         // Process relations
@@ -202,7 +202,7 @@ export function useGRC20() {
 
         // Create the edit
         const edit: GRC20Edit = {
-          name: metadata?.title || 'Tier List Rank',
+          name: metadata?.title || 'Rank List',
           ops: allOps,
         }
 

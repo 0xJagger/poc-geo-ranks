@@ -1,11 +1,14 @@
-# Geo Ranks - Knowledge Graph Tier List Maker
+# Geo Ranks - Knowledge Graph Rank Maker
 
-A modern tier list application that models rankings as a **property graph** and publishes them to a **decentralized knowledge graph** using the GRC-20 standard.
+A modern ranking application that models rankings as a **property graph** and publishes them to a **decentralized knowledge graph** using the GRC-20 standard.
 
 ## Features
 
 ### Core Functionality
-- **Drag & Drop Interface**: Intuitive tier list creation with HTML5 drag and drop
+- **Triple Ranking Modes**: Choose between three ranking approaches:
+  - **Tier Mode**: Drag & drop items into preset tiers (S, A, B, C, D, F) with fixed scores (6-1)
+  - **Free Scoring Mode**: Drag & drop items to a ranking area, then assign custom scores (0 or higher) with fine-grained control
+  - **Slider Mode**: Drag & drop items and use interactive sliders to rate from 1-10 with color-coded visual feedback
 - **Multiple Categories**: Pre-configured item sets including:
   - 🍕 Food
   - 🎬 Movies
@@ -15,26 +18,26 @@ A modern tier list application that models rankings as a **property graph** and 
   - ⚽ Sports
 
 ### Knowledge Graph Architecture
-- **Property Graph Model**: Items and tier lists are modeled as graph entities with flexible properties
+- **Property Graph Model**: Items and rank lists are modeled as graph entities with flexible properties
 - **Weighted Rankings**: Each tier (S, A, B, C, D, F) has a numeric score (6-1)
-- **Relations with Context**: Edges between tier lists and items carry score annotations
+- **Relations with Context**: Edges between rank lists and items carry score annotations
 - **UUID-based Identity**: All entities have unique identifiers for graph consistency
 
 ### Visualization
-- **Interactive Graph View**: React Flow-powered visualization of your tier list graph
-- **Entity Nodes**: Visual representation of tier lists and ranked items
+- **Interactive Graph View**: React Flow-powered visualization of your rank list graph
+- **Entity Nodes**: Visual representation of rank lists and ranked items
 - **Scored Relations**: Edges show the tier score and label for each ranked item
 - **Real-time Updates**: Graph updates as you drag items into tiers
 
 ### GRC-20 Edits Preparation
 - **SDK Integration**: Uses `@graphprotocol/grc-20` SDK to prepare valid GRC-20 operations
-- **Minimal Edits**: Assumes existing properties and items, only creates new TierList entity and relations
+- **Minimal Edits**: Assumes existing properties and items, only creates new RankList entity and relations
 - **Operation Descriptions**: Each operation includes a human-readable description
 - **Efficient Structure**: Reuses common properties (name, rank_type, ranks, score) and item entities
 
 ### Export Options
 - **GRC-20 Edits Download**: Export ready-to-publish GRC-20 operations as JSON
-- **Property Graph Download**: Export your tier list in property graph format
+- **Property Graph Download**: Export your rank list in property graph format
 - **Console Logging**: View the full graph structure and GRC-20 IDs in the browser console
 
 ## Getting Started
@@ -59,14 +62,21 @@ pnpm dev
 ### Usage
 
 1. **Select a Category**: Choose from the available item collections on the home page
-2. **Rank Items**: Drag items from the bottom pool into your desired tiers (S, A, B, C, D, F)
-3. **View Graph**: Click "View Graph" to see the interactive React Flow visualization
-4. **Prepare GRC-20 Edits**: Click "⚙️ Prepare GRC-20 Edits" to generate operations
+2. **Choose Ranking Mode**:
+   - **Tier Mode**: Quick and simple with standard tier format
+   - **Free Scoring**: Custom scores (0 or higher) with full control
+   - **Slider Mode**: Visual sliders with 1-10 scale
+3. **Rank Items**:
+   - **Tier Mode**: Drag items from the bottom pool into your desired tiers (S, A, B, C, D, F)
+   - **Free Scoring**: Drag items from the unranked pool to the ranked area, then enter custom scores
+   - **Slider Mode**: Drag items to the ranked area, then use sliders to rate from 1-10
+4. **View Graph**: Click "View Graph" to see the interactive React Flow visualization
+5. **Prepare GRC-20 Edits**: Click "⚙️ Prepare GRC-20 Edits" to generate operations
    - Automatically prepares minimal GRC-20 operations
    - Shows summary of operations created
    - Displays preview of the edit structure
    - Download as `grc20-edits.json`
-5. **Export**: Download the property graph as JSON for external use
+6. **Export**: Download the property graph as JSON for external use
 
 ## Data Structure
 
@@ -84,7 +94,7 @@ Example:
     {
       "id": "tierlist-123",
       "properties": {
-        "name": "Movies Tier List",
+        "name": "Movies Rank List",
         "type": "weighted_rank"
       }
     },
@@ -110,17 +120,17 @@ Example:
 
 ## GRC-20 Integration
 
-The application uses the `@graphprotocol/grc-20` SDK to prepare tier lists as GRC-20 operations (edits) ready for publishing to a decentralized knowledge graph.
+The application uses the `@graphprotocol/grc-20` SDK to prepare rank lists as GRC-20 operations (edits) ready for publishing to a decentralized knowledge graph.
 
 ### How It Works:
 1. **Assumes Existing Data**: Properties (name, rank_type, ranks, score) and item entities are assumed to already exist in the graph
-2. **Minimal Operations**: Only creates the TierList entity and ranking relations
+2. **Minimal Operations**: Only creates the RankList entity and ranking relations
 3. **GRC-20 ID Generation**: Uses `IdUtils.generate()` to create valid GRC-20 IDs for all entities and relations
 4. **Operation Descriptions**: Each operation includes a human-readable description for clarity
 
 ### What Gets Created:
-- **TierList Entity**: A new entity with `name` and `rank_type` properties
-- **Ranking Relations**: Relations from the TierList to each ranked item, with `score` as entityValues
+- **RankList Entity**: A new entity with `name` and `rank_type` properties
+- **Ranking Relations**: Relations from the RankList to each ranked item, with `score` as entityValues
 
 The generated edit can be downloaded as JSON and is ready to be published to a GRC-20-compliant knowledge graph network.
 
@@ -137,16 +147,22 @@ The generated edit can be downloaded as JSON and is ready to be published to a G
 
 ```
 src/
-├── App.tsx              # Main application component
-├── App.css              # Application styles
-├── HomePage.tsx         # Category selection page
-├── HomePage.css         # Homepage styles
-├── GraphVisualization.tsx # React Flow graph component
-├── categoryData.ts      # Pre-configured item collections
-├── types.ts             # TypeScript interfaces
-├── useGRC20.ts          # GRC-20 edits preparation hook
-├── main.tsx             # Application entry point
-└── index.css            # Global styles
+├── App.tsx                 # Main application component & router
+├── App.css                 # Application styles
+├── HomePage.tsx            # Category selection page
+├── HomePage.css            # Homepage styles
+├── ModeSelection.tsx       # Ranking mode selection page
+├── ModeSelection.css       # Mode selection styles
+├── FreeRankingPage.tsx     # Free scoring mode interface
+├── FreeRankingPage.css     # Free scoring styles
+├── SliderRankingPage.tsx   # Slider mode interface (1-10 scale)
+├── SliderRankingPage.css   # Slider mode styles
+├── GraphVisualization.tsx  # React Flow graph component
+├── categoryData.ts         # Pre-configured item collections
+├── types.ts                # TypeScript interfaces
+├── useGRC20.ts             # GRC-20 edits preparation hook
+├── main.tsx                # Application entry point
+└── index.css               # Global styles
 ```
 
 ## Design Philosophy
@@ -162,9 +178,9 @@ src/
 - **User Attribution**: Multi-user collaborative rankings
 - **Rich Properties**: Add images, descriptions, tags to items
 - **Item Relations**: Create relationships between items (e.g., "similar to", "sequel of")
-- **Multiple Tier Lists**: Compare and merge different ranking systems
-- **Social Features**: Follow creators, like tier lists, community curation
-- **Privacy Options**: Encrypted private tier lists
+- **Multiple Rank Lists**: Compare and merge different ranking systems
+- **Social Features**: Follow creators, like rank lists, community curation
+- **Privacy Options**: Encrypted private rank lists
 
 ## Resources
 

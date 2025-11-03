@@ -1,0 +1,227 @@
+.free-ranking-page {
+  min-height: 100vh;
+}
+
+.mode-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: white;
+  margin-left: 1rem;
+}
+
+.free-ranking-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.ranking-instructions {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.ranking-instructions h2 {
+  font-size: 2rem;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.ranking-instructions p {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.ranked-area-section {
+  margin-bottom: 2rem;
+}
+
+.ranked-area-section h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.ranked-area {
+  background: rgba(102, 126, 234, 0.15);
+  backdrop-filter: blur(10px);
+  border: 3px dashed rgba(102, 126, 234, 0.4);
+  border-radius: 16px;
+  padding: 2rem;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+.ranked-area.drag-active {
+  background: rgba(102, 126, 234, 0.25);
+  border-color: rgba(102, 126, 234, 0.7);
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+.ranked-area .empty-message {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 3rem;
+}
+
+.ranked-item {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  cursor: grab;
+  transition: all 0.3s ease;
+}
+
+.ranked-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.ranked-item:active {
+  cursor: grabbing;
+}
+
+.ranked-item .item-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.ranked-item .item-emoji {
+  font-size: 2rem;
+}
+
+.ranked-item .item-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: white;
+}
+
+.unranked-section {
+  margin-top: 2rem;
+}
+
+.unranked-section h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.unranked-pool {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 3px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 2rem;
+  min-height: 200px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-content: flex-start;
+  transition: all 0.3s ease;
+}
+
+.unranked-pool.drag-active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.unranked-pool .empty-message {
+  width: 100%;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 2rem;
+}
+
+.unranked-pool .item {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: grab;
+  transition: all 0.3s ease;
+}
+
+.unranked-pool .item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.unranked-pool .item:active {
+  cursor: grabbing;
+}
+
+.unranked-pool .item-emoji {
+  font-size: 1.75rem;
+}
+
+.unranked-pool .item-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+}
+
+.score-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.score-input-wrapper label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.score-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.score-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.score-input:focus {
+  border-color: rgba(102, 126, 234, 0.8);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.score-input::-webkit-inner-spin-button,
+.score-input::-webkit-outer-spin-button {
+  opacity: 1;
+}
+

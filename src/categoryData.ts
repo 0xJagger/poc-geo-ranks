@@ -9,7 +9,7 @@ export interface CategoryData {
 export const categories: CategoryData[] = [
   {
     id: 'food',
-    name: 'Food Tier List',
+    name: 'Food Rank List',
     items: [
       { id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', name: 'Pizza', emoji: '🍕' },
       { id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', name: 'Burger', emoji: '🍔' },
@@ -31,7 +31,7 @@ export const categories: CategoryData[] = [
   },
   {
     id: 'movies',
-    name: 'Movies Tier List',
+    name: 'Movies Rank List',
     items: [
       { id: 'mov-1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', name: 'The Godfather', emoji: '🎬' },
       { id: 'mov-2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e', name: 'Pulp Fiction', emoji: '🎞️' },
@@ -53,7 +53,7 @@ export const categories: CategoryData[] = [
   },
   {
     id: 'podcasts',
-    name: 'Podcasts Tier List',
+    name: 'Podcasts Rank List',
     items: [
       { id: 'pod-1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', name: 'The Daily', emoji: '📰' },
       { id: 'pod-2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e', name: 'Serial', emoji: '🎙️' },
@@ -75,7 +75,7 @@ export const categories: CategoryData[] = [
   },
   {
     id: 'videogames',
-    name: 'Video Games Tier List',
+    name: 'Video Games Rank List',
     items: [
       { id: 'game-1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', name: 'Minecraft', emoji: '🧱' },
       { id: 'game-2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e', name: 'Zelda', emoji: '🗡️' },
@@ -97,7 +97,7 @@ export const categories: CategoryData[] = [
   },
   {
     id: 'music',
-    name: 'Music Genres Tier List',
+    name: 'Music Genres Rank List',
     items: [
       { id: 'music-1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', name: 'Rock', emoji: '🎸' },
       { id: 'music-2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e', name: 'Pop', emoji: '🎤' },
@@ -119,7 +119,7 @@ export const categories: CategoryData[] = [
   },
   {
     id: 'sports',
-    name: 'Sports Tier List',
+    name: 'Sports Rank List',
     items: [
       { id: 'sport-1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', name: 'Football', emoji: '⚽' },
       { id: 'sport-2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e', name: 'Basketball', emoji: '🏀' },

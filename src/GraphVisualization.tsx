@@ -12,16 +12,16 @@ import {
   type Edge,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import type { ItemEntity, TierListEntity, KnowledgeGraph } from './types'
+import type { ItemEntity, RankListEntity, KnowledgeGraph } from './types'
 
 interface GraphVisualizationProps {
   graph: KnowledgeGraph
-  tierListEntity: TierListEntity
+  rankListEntity: RankListEntity
   tierMetadata: Array<{ label: string; score: number; color: string }>
 }
 
-// Custom TierList Node Component
-const TierListNode = ({ data }: { data: any }) => {
+// Custom RankList Node Component
+const RankListNode = ({ data }: { data: any }) => {
   return (
     <div
       style={{
@@ -44,7 +44,7 @@ const TierListNode = ({ data }: { data: any }) => {
           fontWeight: 600,
         }}
       >
-        TierList Entity
+        RankList Entity
       </div>
       <div
         style={{
@@ -145,27 +145,27 @@ const ItemNode = ({ data }: { data: any }) => {
 }
 
 const nodeTypes = {
-  tierList: TierListNode,
+  rankList: RankListNode,
   item: ItemNode,
 }
 
-export function GraphVisualization({ graph, tierListEntity, tierMetadata }: GraphVisualizationProps) {
+export function GraphVisualization({ graph, rankListEntity, tierMetadata }: GraphVisualizationProps) {
   // Convert graph data to React Flow format
   const { nodes, edges } = useMemo(() => {
     const flowNodes: Node[] = []
     const flowEdges: Edge[] = []
 
-    // Add TierList node (center)
+    // Add RankList node (center)
     const centerX = 500
     const centerY = 300
     
     flowNodes.push({
-      id: tierListEntity.id,
-      type: 'tierList',
+      id: rankListEntity.id,
+      type: 'rankList',
       position: { x: centerX - 125, y: centerY - 75 }, // Center the node (approx 250px wide)
       data: {
-        label: tierListEntity.name,
-        id: tierListEntity.id,
+        label: rankListEntity.name,
+        id: rankListEntity.id,
       },
     })
 
@@ -175,7 +175,7 @@ export function GraphVisualization({ graph, tierListEntity, tierMetadata }: Grap
       (e): e is ItemEntity => 'emoji' in e && rankedItemIds.has(e.id)
     )
 
-    // Calculate circular layout for ranked items around the TierList
+    // Calculate circular layout for ranked items around the RankList
     const radius = 350
 
     rankedItems.forEach((item, index) => {
@@ -205,7 +205,7 @@ export function GraphVisualization({ graph, tierListEntity, tierMetadata }: Grap
       // Add edge
       flowEdges.push({
         id: relation.id,
-        source: tierListEntity.id,
+        source: rankListEntity.id,
         target: item.id,
         type: ConnectionLineType.Bezier,
         animated: true,
@@ -233,7 +233,7 @@ export function GraphVisualization({ graph, tierListEntity, tierMetadata }: Grap
     })
 
     return { nodes: flowNodes, edges: flowEdges }
-  }, [graph, tierListEntity, tierMetadata])
+  }, [graph, rankListEntity, tierMetadata])
 
   return (
     <div style={{ width: '100%', height: '600px' }}>
@@ -254,7 +254,7 @@ export function GraphVisualization({ graph, tierListEntity, tierMetadata }: Grap
         <Controls />
         <MiniMap
           nodeColor={(node) => {
-            if (node.type === 'tierList') return '#667eea'
+            if (node.type === 'rankList') return '#667eea'
             return '#764ba2'
           }}
           maskColor="rgba(0, 0, 0, 0.6)"

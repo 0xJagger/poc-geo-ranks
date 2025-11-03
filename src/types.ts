@@ -5,7 +5,7 @@ export interface ItemEntity {
   emoji: string // For UI display purposes
 }
 
-export interface TierListEntity {
+export interface RankListEntity {
   id: string
   name: string
   rank_type: 'weighted_rank'
@@ -13,14 +13,14 @@ export interface TierListEntity {
 
 export interface Relation {
   id: string
-  from: string // TierList entity ID
+  from: string // RankList entity ID
   to: string // Item entity ID
   score: number // Score annotation indicating tier (S=6, A=5, B=4, C=3, D=2, F=1)
 }
 
 // Internal Knowledge Graph Structure (for UI)
 export interface KnowledgeGraph {
-  entities: Array<ItemEntity | TierListEntity>
+  entities: Array<ItemEntity | RankListEntity>
   relations: Relation[]
 }
 

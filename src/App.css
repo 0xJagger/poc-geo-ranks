@@ -26,6 +26,18 @@
   color: #667eea;
 }
 
+.mode-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: rgba(102, 126, 234, 0.2);
+  border: 2px solid rgba(102, 126, 234, 0.4);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #667eea;
+  margin-left: 1rem;
+}
+
 .header-actions {
   display: flex;
   gap: 1rem;
@@ -121,7 +133,7 @@
   margin-right: 0.5rem;
 }
 
-/* Tier List Styles */
+/* Tier Ranking Styles */
 .tier-list {
   margin-bottom: 2rem;
   border-radius: 12px;

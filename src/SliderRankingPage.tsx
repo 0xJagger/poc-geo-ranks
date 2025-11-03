@@ -1,49 +1,40 @@
 import { useState } from 'react'
-import './App.css'
-import { HomePage } from './HomePage'
-import { ModeSelection, type RankingMode } from './ModeSelection'
-import { FreeRankingPage } from './FreeRankingPage'
-import { SliderRankingPage } from './SliderRankingPage'
+import './SliderRankingPage.css'
+import { Slider } from '@mui/material'
 import { GraphVisualization } from './GraphVisualization'
-import { getCategoryData } from './categoryData'
 import { useGRC20 } from './useGRC20'
 import type { 
   ItemEntity, 
   RankListEntity, 
   KnowledgeGraph, 
-  TierMeta, 
-  Relation,
   PropertyGraph,
   PropertyGraphEntity,
   PropertyGraphRelation
 } from './types'
 
-// Tier metadata for UI display (not entities, just display config)
-const tierMetadata: TierMeta[] = [
-  { label: 'S', score: 6, color: '#ff7f7f' },
-  { label: 'A', score: 5, color: '#ffbf7f' },
-  { label: 'B', score: 4, color: '#ffdf7f' },
-  { label: 'C', score: 3, color: '#ffff7f' },
-  { label: 'D', score: 2, color: '#bfff7f' },
-  { label: 'F', score: 1, color: '#7fbfff' },
-]
+interface SliderRankingPageProps {
+  rankListEntity: RankListEntity
+  initialItems: ItemEntity[]
+  onBack: () => void
+}
 
-function App() {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [selectedMode, setSelectedMode] = useState<RankingMode | null>(null)
-  const [rankListEntity, setRankListEntity] = useState<RankListEntity | null>(null)
-  const [initialItems, setInitialItems] = useState<ItemEntity[]>([])
+export function SliderRankingPage({ rankListEntity, initialItems, onBack }: SliderRankingPageProps) {
+  // Track scores for each item (1-10 scale)
+  const [itemScores, setItemScores] = useState<Map<string, number>>(new Map())
   
-  // Initialize Knowledge Graph (only for tier mode)
-  const [graph, setGraph] = useState<KnowledgeGraph>({
-    entities: [],
-    relations: [],
-  })
-
+  // Track which items are ranked (in the ranking area)
+  const [rankedItemIds, setRankedItemIds] = useState<Set<string>>(new Set())
+  
+  // Track which item is currently being adjusted (to prevent re-sorting while sliding)
+  const [activeSliderItemId, setActiveSliderItemId] = useState<string | null>(null)
+  
+  // Track sorted order - only update when slider is released
+  const [sortedItemOrder, setSortedItemOrder] = useState<string[]>([])
+  
   const [draggedItem, setDraggedItem] = useState<ItemEntity | null>(null)
   const [showGraphViz, setShowGraphViz] = useState(false)
   const [showPublishModal, setShowPublishModal] = useState(false)
-  
+
   // GRC-20 integration
   const {
     isPreparing,
@@ -52,117 +43,27 @@ function App() {
     prepareGRC20Edits,
     resetPreparedData,
   } = useGRC20()
-  
-  const handleCategorySelect = (categoryId: string) => {
-    const categoryData = getCategoryData(categoryId)
-    if (!categoryData) return
+
+  // Build knowledge graph from current scores
+  const buildGraph = (): KnowledgeGraph => {
+    const relations = []
     
-    // Create RankList entity for this category
-    const newRankListEntity: RankListEntity = {
-      id: crypto.randomUUID(),
-      name: categoryData.name,
-      rank_type: 'weighted_rank',
+    for (const itemId of rankedItemIds) {
+      const score = itemScores.get(itemId)
+      if (score !== undefined) {
+        relations.push({
+          id: crypto.randomUUID(),
+          from: rankListEntity.id,
+          to: itemId,
+          score: score,
+        })
+      }
     }
-    
-    setRankListEntity(newRankListEntity)
-    setInitialItems(categoryData.items)
-    setSelectedCategory(categoryId)
-    // Don't initialize graph yet, wait for mode selection
-  }
 
-  const handleModeSelect = (mode: RankingMode) => {
-    setSelectedMode(mode)
-    
-    // Initialize graph for tier mode
-    if (mode === 'tier' && rankListEntity) {
-      setGraph({
-        entities: [rankListEntity, ...initialItems],
-        relations: [],
-      })
+    return {
+      entities: [rankListEntity, ...initialItems],
+      relations,
     }
-  }
-  
-  const handleBackToHome = () => {
-    setSelectedCategory(null)
-    setSelectedMode(null)
-    setRankListEntity(null)
-    setInitialItems([])
-    setGraph({
-      entities: [],
-      relations: [],
-    })
-  }
-
-  const handleBackToModeSelection = () => {
-    setSelectedMode(null)
-    setGraph({
-      entities: [],
-      relations: [],
-    })
-  }
-  
-  // Show homepage if no category is selected
-  if (!selectedCategory || !rankListEntity) {
-    return <HomePage onSelectCategory={handleCategorySelect} />
-  }
-
-  // Show mode selection if mode not selected yet
-  if (!selectedMode) {
-    return (
-      <ModeSelection
-        categoryName={rankListEntity.name}
-        onSelectMode={handleModeSelect}
-        onBack={handleBackToHome}
-      />
-    )
-  }
-
-  // Show free ranking page for free mode
-  if (selectedMode === 'free') {
-    return (
-      <FreeRankingPage
-        rankListEntity={rankListEntity}
-        initialItems={initialItems}
-        onBack={handleBackToModeSelection}
-      />
-    )
-  }
-
-  // Show slider ranking page for slider mode
-  if (selectedMode === 'slider') {
-    return (
-      <SliderRankingPage
-        rankListEntity={rankListEntity}
-        initialItems={initialItems}
-        onBack={handleBackToModeSelection}
-      />
-    )
-  }
-
-  // Helper: Get all item entities
-  const getItemEntities = (): ItemEntity[] => {
-    return graph.entities.filter(
-      (e): e is ItemEntity => 'emoji' in e
-    )
-  }
-
-  // Helper: Get items for a specific tier score
-  const getItemsForTierScore = (score: number): ItemEntity[] => {
-    const itemIdsAtScore = graph.relations
-      .filter(rel => rel.from === rankListEntity.id && rel.score === score)
-      .map(rel => rel.to)
-    return getItemEntities().filter(item => itemIdsAtScore.includes(item.id))
-  }
-
-  // Helper: Get unranked items (items with no relations)
-  const getUnrankedItems = (): ItemEntity[] => {
-    const rankedItemIds = graph.relations.map(rel => rel.to)
-    return getItemEntities().filter(item => !rankedItemIds.includes(item.id))
-  }
-
-  // Helper: Generate unique relation ID
-  const generateRelationId = () => {
-    return crypto.randomUUID()
   }
 
   const handleDragStart = (item: ItemEntity) => {
@@ -173,48 +74,97 @@ function App() {
     e.preventDefault()
   }
 
-  const handleDrop = (targetScore: number | null) => {
+  const handleDropToRanked = () => {
     if (!draggedItem) return
 
-    setGraph(prevGraph => {
-      let newRelations = [...prevGraph.relations]
-
-      // Remove existing relation for this item (if any)
-      newRelations = newRelations.filter(rel => rel.to !== draggedItem.id)
-
-      // If dropping into a tier (not unranked), create new relation
-      if (targetScore !== null) {
-        const newRelation: Relation = {
-          id: generateRelationId(),
-          from: rankListEntity.id,
-          to: draggedItem.id,
-          score: targetScore,
-        }
-        newRelations.push(newRelation)
+    // Add to ranked area if not already there
+    if (!rankedItemIds.has(draggedItem.id)) {
+      const newRankedIds = new Set([...rankedItemIds, draggedItem.id])
+      setRankedItemIds(newRankedIds)
+      
+      // Set score to lowest current score (or 1 if no items ranked)
+      const newScores = new Map(itemScores)
+      if (!itemScores.has(draggedItem.id)) {
+        // Find minimum score among ranked items
+        const existingScores = Array.from(itemScores.values())
+        const minScore = existingScores.length > 0 ? Math.min(...existingScores) : 1
+        newScores.set(draggedItem.id, minScore)
+        setItemScores(newScores)
       }
-
-      return {
-        ...prevGraph,
-        relations: newRelations,
-      }
-    })
-
+      
+      // Update sorted order
+      updateSortedOrder(newRankedIds, newScores)
+    }
+    
     setDraggedItem(null)
   }
 
-  const handleReset = () => {
-    if (!rankListEntity) return
-    setGraph({
-      entities: [rankListEntity, ...initialItems],
-      relations: [],
-    })
+  const handleDropToUnranked = () => {
+    if (!draggedItem) return
+
+    // Remove from ranked area
+    const newRankedIds = new Set(rankedItemIds)
+    newRankedIds.delete(draggedItem.id)
+    setRankedItemIds(newRankedIds)
+    
+    // Remove score
+    const newScores = new Map(itemScores)
+    newScores.delete(draggedItem.id)
+    setItemScores(newScores)
+    
+    // Update sorted order
+    updateSortedOrder(newRankedIds, newScores)
+    
+    setDraggedItem(null)
   }
 
-  // Convert internal graph to property graph format
+  const handleScoreChange = (itemId: string, value: number) => {
+    setItemScores(new Map(itemScores.set(itemId, value)))
+  }
+
+  const handleSliderChangeStart = (itemId: string) => {
+    setActiveSliderItemId(itemId)
+  }
+
+  const handleSliderChangeEnd = () => {
+    setActiveSliderItemId(null)
+    // Re-sort after slider is released
+    updateSortedOrder(rankedItemIds, itemScores)
+  }
+
+  // Helper function to update the sorted order based on scores
+  const updateSortedOrder = (rankedIds: Set<string>, scores: Map<string, number>) => {
+    const items = initialItems.filter(item => rankedIds.has(item.id))
+    const sorted = items.sort((a, b) => {
+      const scoreA = scores.get(a.id) || 5
+      const scoreB = scores.get(b.id) || 5
+      return scoreB - scoreA
+    })
+    setSortedItemOrder(sorted.map(item => item.id))
+  }
+
+  const handleReset = () => {
+    setItemScores(new Map())
+    setRankedItemIds(new Set())
+  }
+
+  const getRankedCount = () => {
+    return rankedItemIds.size
+  }
+
+  const getRankedItems = (): ItemEntity[] => {
+    return initialItems.filter(item => rankedItemIds.has(item.id))
+  }
+
+  const getUnrankedItems = (): ItemEntity[] => {
+    return initialItems.filter(item => !rankedItemIds.has(item.id))
+  }
+
   const convertToPropertyGraph = (): PropertyGraph => {
+    const graph = buildGraph()
+    
     const propertyEntities: PropertyGraphEntity[] = graph.entities.map(entity => {
       if ('rank_type' in entity && entity.rank_type === 'weighted_rank') {
-        // RankList entity
         return {
           id: entity.id,
           properties: {
@@ -223,7 +173,6 @@ function App() {
           },
         }
       } else if ('emoji' in entity) {
-        // Item entity (exclude emoji from export)
         return {
           id: entity.id,
           properties: {
@@ -251,33 +200,28 @@ function App() {
 
   const exportGraph = () => {
     const propertyGraph = convertToPropertyGraph()
-    
     console.log('📊 Property Graph:', propertyGraph)
-    console.log('📊 JSON:', JSON.stringify(propertyGraph, null, 2))
-    
     setShowGraphViz(true)
   }
 
   const downloadGraphJSON = () => {
     const propertyGraph = convertToPropertyGraph()
-    
     const dataStr = JSON.stringify(propertyGraph, null, 2)
     const dataBlob = new Blob([dataStr], { type: 'application/json' })
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'tierlist-graph.json'
+    link.download = 'slider-ranking-graph.json'
     link.click()
     URL.revokeObjectURL(url)
   }
 
   const handlePrepareClick = () => {
-    if (graph.relations.length === 0) {
+    if (getRankedCount() === 0) {
       alert('Please rank some items before preparing!')
       return
     }
     setShowPublishModal(true)
-    // Automatically prepare the edits when modal opens
     handlePrepare()
   }
 
@@ -286,7 +230,7 @@ function App() {
       const propertyGraph = convertToPropertyGraph()
       await prepareGRC20Edits(propertyGraph, {
         title: rankListEntity?.name,
-        description: `Rank list with ${graph.relations.length} ranked items`,
+        description: `Slider ranking (1-10) with ${getRankedCount()} ranked items`,
       })
     } catch (error: any) {
       console.error('Prepare error:', error)
@@ -307,20 +251,31 @@ function App() {
     URL.revokeObjectURL(url)
   }
 
+  const graph = buildGraph()
+  const rankedCount = getRankedCount()
+  const rankedItems = getRankedItems()
   const unrankedItems = getUnrankedItems()
-  const itemCount = getItemEntities().length
-  const rankListCount = graph.entities.filter((e): e is RankListEntity => 'rank_type' in e && e.rank_type === 'weighted_rank').length
 
-  // Tier mode - existing drag and drop interface
+  // Use the stable sorted order (only updated when slider is released)
+  const sortedRankedItems = activeSliderItemId
+    ? // While sliding, use current stable order
+      sortedItemOrder.map(id => initialItems.find(item => item.id === id)!).filter(Boolean)
+    : // When not sliding, get fresh sorted list
+      rankedItems.sort((a, b) => {
+        const scoreA = itemScores.get(a.id) || 5
+        const scoreB = itemScores.get(b.id) || 5
+        return scoreB - scoreA
+      })
+
   return (
-    <div className="app">
+    <div className="app slider-ranking-page">
       <div className="header">
         <div className="header-left">
-          <button className="back-button" onClick={handleBackToModeSelection}>
+          <button className="back-button" onClick={onBack}>
             ← Back
           </button>
-          <h1>🎯 {rankListEntity.name}</h1>
-          <span className="mode-badge">Tier Mode</span>
+          <h1>🎚️ {rankListEntity.name}</h1>
+          <span className="mode-badge">Slider Mode</span>
         </div>
         <div className="header-actions">
           <button className="publish-button" onClick={handlePrepareClick}>
@@ -337,71 +292,119 @@ function App() {
 
       <div className="graph-info">
         <div className="graph-stat">
-          <strong>Entities:</strong> {itemCount} items, {rankListCount} rank list
+          <strong>Total Items:</strong> {initialItems.length}
+        </div>
+        <div className="graph-stat">
+          <strong>Items Ranked:</strong> {rankedCount}
         </div>
         <div className="graph-stat">
           <strong>Relations:</strong> {graph.relations.length}
         </div>
-        <div className="graph-stat">
-          <strong>Rank List:</strong> {rankListEntity.name}
-        </div>
       </div>
 
-      <div className="tier-list">
-        {tierMetadata.map(tier => {
-          const tieredItems = getItemsForTierScore(tier.score)
-          return (
-            <div key={tier.label} className="tier-row">
-              <div className="tier-label" style={{ backgroundColor: tier.color }}>
-                <div className="tier-name">{tier.label}</div>
-                <div className="tier-score">({tier.score})</div>
-              </div>
-              <div
-                className={`tier-content ${draggedItem ? 'drag-active' : ''}`}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(tier.score)}
-              >
-                {tieredItems.length === 0 && (
-                  <div className="empty-tier-message">Drop items here</div>
-                )}
-                {tieredItems.map(item => (
-                  <div
-                    key={item.id}
-                    className="item"
-                    draggable
-                    onDragStart={() => handleDragStart(item)}
+      <div className="slider-ranking-content">
+        <div className="ranking-instructions">
+          <h2>Drag & Drop with Slider Scoring</h2>
+          <p>Drag items to the ranking area, then use sliders to rate from 1-10. Higher scores = better ranking.</p>
+        </div>
+
+        <div className="ranked-area-section">
+          <h3>🎚️ Ranked Items</h3>
+          <div
+            className={`ranked-area ${draggedItem ? 'drag-active' : ''}`}
+            onDragOver={handleDragOver}
+            onDrop={handleDropToRanked}
+          >
+            {sortedRankedItems.length === 0 && (
+              <div className="empty-message">Drag items here to rank them</div>
+            )}
+            {sortedRankedItems.map(item => {
+              const score = itemScores.get(item.id) || 5
+              
+              return (
+                <div
+                  key={item.id}
+                  className="ranked-item"
+                  draggable
+                  onDragStart={() => handleDragStart(item)}
+                >
+                  <div 
+                    className="item-info"
                   >
                     <span className="item-emoji">{item.emoji}</span>
-                    <span className="item-label">{item.name}</span>
+                    <span className="item-name">{item.name}</span>
                   </div>
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+                  <div 
+                    className="slider-wrapper"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                  >
+                    <span className="slider-label">1</span>
+                    <Slider
+                      value={score}
+                      onChange={(_, newValue) => handleScoreChange(item.id, newValue as number)}
+                      onChangeCommitted={() => handleSliderChangeEnd()}
+                      onMouseDown={() => handleSliderChangeStart(item.id)}
+                      onTouchStart={() => handleSliderChangeStart(item.id)}
+                      min={1}
+                      max={10}
+                      step={1}
+                      marks
+                      valueLabelDisplay="auto"
+                      sx={{
+                        flex: 1,
+                        color: '#667eea',
+                        '& .MuiSlider-thumb': {
+                          width: 24,
+                          height: 24,
+                        },
+                        '& .MuiSlider-track': {
+                          height: 8,
+                        },
+                        '& .MuiSlider-rail': {
+                          height: 8,
+                          opacity: 0.3,
+                        },
+                        '& .MuiSlider-mark': {
+                          display: 'none',
+                        },
+                      }}
+                    />
+                    <span className="slider-label">10</span>
+                    <div 
+                      className="score-badge"
+                    >
+                      {score}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
 
-      <div className="unranked-section">
-        <h2>Unranked Items</h2>
-        <div
-          className={`unranked-pool ${draggedItem ? 'drag-active' : ''}`}
-          onDragOver={handleDragOver}
-          onDrop={() => handleDrop(null)}
-        >
-          {unrankedItems.length === 0 && (
-            <div className="empty-message">All items ranked!</div>
-          )}
-          {unrankedItems.map(item => (
-            <div
-              key={item.id}
-              className="item"
-              draggable
-              onDragStart={() => handleDragStart(item)}
-            >
-              <span className="item-emoji">{item.emoji}</span>
-              <span className="item-label">{item.name}</span>
-            </div>
-          ))}
+        <div className="unranked-section">
+          <h3>Unranked Items</h3>
+          <div
+            className={`unranked-pool ${draggedItem ? 'drag-active' : ''}`}
+            onDragOver={handleDragOver}
+            onDrop={handleDropToUnranked}
+          >
+            {unrankedItems.length === 0 && (
+              <div className="empty-message">All items ranked!</div>
+            )}
+            {unrankedItems.map(item => (
+              <div
+                key={item.id}
+                className="item"
+                draggable
+                onDragStart={() => handleDragStart(item)}
+              >
+                <span className="item-emoji">{item.emoji}</span>
+                <span className="item-label">{item.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -420,12 +423,12 @@ function App() {
               <GraphVisualization 
                 graph={graph} 
                 rankListEntity={rankListEntity}
-                tierMetadata={tierMetadata}
+                tierMetadata={[]} // No preset tiers in slider mode
               />
               
               {graph.relations.length === 0 && (
                 <div className="no-relations-overlay">
-                  No items ranked yet. Drag items to tiers to create relations!
+                  No items scored yet. Drag items and use sliders to create relations!
                 </div>
               )}
             </div>
@@ -441,7 +444,7 @@ function App() {
               </div>
               <div className="stat-box">
                 <div className="stat-label">Items Ranked</div>
-                <div className="stat-value">{graph.relations.length} / {itemCount}</div>
+                <div className="stat-value">{rankedCount} / {initialItems.length}</div>
               </div>
             </div>
 
@@ -473,14 +476,14 @@ function App() {
                 <div className="wallet-connection">
                   <div className="wallet-icon">⚙️</div>
                   <h3>Preparing GRC-20 Edits...</h3>
-                  <p>Converting your rank list graph to GRC-20 operations</p>
+                  <p>Converting your ranking graph to GRC-20 operations</p>
                 </div>
               ) : preparedData ? (
                 <div className="publish-content">
                   <div className="prepare-success">
                     <div className="success-icon">✅</div>
                     <h3>GRC-20 Edits Ready!</h3>
-                    <p>Your rank list has been successfully encoded as GRC-20 operations</p>
+                    <p>Your ranking has been successfully encoded as GRC-20 operations</p>
                   </div>
 
                   <div className="publish-summary">
@@ -553,4 +556,3 @@ function App() {
   )
 }
 
-export default App
