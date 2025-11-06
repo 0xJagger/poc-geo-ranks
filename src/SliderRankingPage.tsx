@@ -33,6 +33,7 @@ export function SliderRankingPage({ rankListEntity, initialItems, onBack }: Slid
   
   const [draggedItem, setDraggedItem] = useState<ItemEntity | null>(null)
   const [dragOverItemId, setDragOverItemId] = useState<string | null>(null)
+  const [dragOverPosition, setDragOverPosition] = useState<'above' | 'below' | null>(null)
   const [showGraphViz, setShowGraphViz] = useState(false)
   const [showPublishModal, setShowPublishModal] = useState(false)
 
@@ -124,18 +125,41 @@ export function SliderRankingPage({ rankListEntity, initialItems, onBack }: Slid
     setDragOverItemId(null)
   }
 
-  const handleDragEnterItem = (item: ItemEntity) => {
+  const handleDragEnterItem = (item: ItemEntity, e: React.DragEvent) => {
     if (!draggedItem || draggedItem.id === item.id) return
+    
+    // Determine if hovering over top or bottom half of item
+    const rect = e.currentTarget.getBoundingClientRect()
+    const midpoint = rect.top + rect.height / 2
+    const position = e.clientY < midpoint ? 'above' : 'below'
+    
     setDragOverItemId(item.id)
+    setDragOverPosition(position)
+  }
+
+  const handleDragOverItem = (item: ItemEntity, e: React.DragEvent) => {
+    e.preventDefault()
+    if (!draggedItem || draggedItem.id === item.id) return
+    
+    // Continuously update position while dragging over
+    const rect = e.currentTarget.getBoundingClientRect()
+    const midpoint = rect.top + rect.height / 2
+    const position = e.clientY < midpoint ? 'above' : 'below'
+    
+    if (dragOverPosition !== position) {
+      setDragOverPosition(position)
+    }
   }
 
   const handleDragLeave = () => {
     setDragOverItemId(null)
+    setDragOverPosition(null)
   }
 
   const handleDropOnItem = (targetItem: ItemEntity) => {
     if (!draggedItem || draggedItem.id === targetItem.id) {
       setDragOverItemId(null)
+      setDragOverPosition(null)
       return
     }
 
@@ -149,35 +173,61 @@ export function SliderRankingPage({ rankListEntity, initialItems, onBack }: Slid
     const draggedIndex = sortedItems.findIndex(item => item.id === draggedItem.id)
     const targetIndex = sortedItems.findIndex(item => item.id === targetItem.id)
     
-    // Check if item is already in the correct position (directly above target)
-    if (draggedIndex !== -1 && draggedIndex === targetIndex - 1) {
-      // Already in position, don't change score
-      setDraggedItem(null)
-      setDragOverItemId(null)
-      return
+    // Determine where to insert based on drop position
+    let itemAbove: ItemEntity | null = null
+    let itemBelow: ItemEntity | null = null
+    
+    if (dragOverPosition === 'above') {
+      // Inserting above target item
+      itemAbove = targetIndex > 0 ? sortedItems[targetIndex - 1] : null
+      itemBelow = targetItem
+      
+      // Check if already in correct position
+      if (draggedIndex !== -1 && draggedIndex === targetIndex - 1) {
+        setDraggedItem(null)
+        setDragOverItemId(null)
+        setDragOverPosition(null)
+        return
+      }
+    } else {
+      // Inserting below target item (dragOverPosition === 'below')
+      itemAbove = targetItem
+      itemBelow = targetIndex < sortedItems.length - 1 ? sortedItems[targetIndex + 1] : null
+      
+      // Check if already in correct position
+      if (draggedIndex !== -1 && draggedIndex === targetIndex + 1) {
+        setDraggedItem(null)
+        setDragOverItemId(null)
+        setDragOverPosition(null)
+        return
+      }
     }
     
-    const itemAbove = targetIndex > 0 ? sortedItems[targetIndex - 1] : null
-    
-    // Get the target's score (the item below where we're inserting)
-    const targetScore = itemScores.get(targetItem.id)
-    const scoreBelow = targetScore !== undefined ? targetScore : 50
-    
-    // Calculate midpoint between item above and target item
+    // Calculate the score based on the items above and below
     let scoreToAssign: number
-    if (itemAbove && itemAbove.id !== draggedItem.id) {
-      const scoreAbove = itemScores.get(itemAbove.id)
-      const numAbove = scoreAbove !== undefined ? scoreAbove : 50
-      // Midpoint between above and below (rounded to 2 decimal places)
-      scoreToAssign = Math.round(((numAbove + scoreBelow) / 2) * 100) / 100
-    } else if (!itemAbove) {
-      // Dropping at the top - use midpoint between 100 and target item (rounded to 2 decimal places)
+    
+    if (itemAbove && itemBelow) {
+      // Between two items - skip if one of them is the dragged item itself
+      if (itemAbove.id === draggedItem.id || itemBelow.id === draggedItem.id) {
+        setDraggedItem(null)
+        setDragOverItemId(null)
+        setDragOverPosition(null)
+        return
+      }
+      const scoreAbove = itemScores.get(itemAbove.id) || 50
+      const scoreBelow = itemScores.get(itemBelow.id) || 50
+      scoreToAssign = Math.round(((scoreAbove + scoreBelow) / 2) * 100) / 100
+    } else if (!itemAbove && itemBelow) {
+      // At the top - midpoint between 100 and item below
+      const scoreBelow = itemScores.get(itemBelow.id) || 50
       scoreToAssign = Math.round(((100 + scoreBelow) / 2) * 100) / 100
+    } else if (itemAbove && !itemBelow) {
+      // At the bottom - midpoint between item above and 1
+      const scoreAbove = itemScores.get(itemAbove.id) || 50
+      scoreToAssign = Math.round(((scoreAbove + 1) / 2) * 100) / 100
     } else {
-      // itemAbove is the dragged item itself, so we're dropping in the same spot
-      setDraggedItem(null)
-      setDragOverItemId(null)
-      return
+      // Only item in list - use 50 as default
+      scoreToAssign = 50
     }
 
     // Update the dragged item's score
@@ -199,6 +249,7 @@ export function SliderRankingPage({ rankListEntity, initialItems, onBack }: Slid
 
     setDraggedItem(null)
     setDragOverItemId(null)
+    setDragOverPosition(null)
   }
 
   const handleScoreChange = (itemId: string, value: number) => {
@@ -392,7 +443,7 @@ export function SliderRankingPage({ rankListEntity, initialItems, onBack }: Slid
           <h2>Drag & Drop with Slider Scoring</h2>
           <p>Drag items to the ranking area, then use sliders to rate from 1-100. Higher scores = better ranking.</p>
           <p style={{ fontSize: '0.95rem', marginTop: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-            💡 Tip: Drop items onto others to reorder (score = midpoint between neighbors). Drop at top for max 100, bottom for min 1!
+            💡 Tip: Hover over top/bottom half of items to drop above/below. Score = midpoint between neighbors. Empty area = bottom!
           </p>
         </div>
 
@@ -410,17 +461,21 @@ export function SliderRankingPage({ rankListEntity, initialItems, onBack }: Slid
               const score = itemScores.get(item.id) || 50
               const displayScore = score.toFixed(2)
               const isDraggedOver = dragOverItemId === item.id
+              const dragPosition = isDraggedOver ? dragOverPosition : null
               
               return (
                 <div
                   key={item.id}
-                  className={`ranked-item ${isDraggedOver ? 'drag-over' : ''}`}
+                  className={`ranked-item ${isDraggedOver ? `drag-over-${dragPosition}` : ''}`}
                   draggable
                   onDragStart={() => handleDragStart(item)}
-                  onDragEnter={() => handleDragEnterItem(item)}
+                  onDragEnter={(e) => handleDragEnterItem(item, e)}
                   onDragLeave={handleDragLeave}
-                  onDragOver={handleDragOver}
-                  onDrop={() => handleDropOnItem(item)}
+                  onDragOver={(e) => handleDragOverItem(item, e)}
+                  onDrop={(e) => {
+                    e.stopPropagation()
+                    handleDropOnItem(item)
+                  }}
                 >
                   <div 
                     className="item-info"
