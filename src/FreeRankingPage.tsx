@@ -25,6 +25,7 @@ export function FreeRankingPage({ rankListEntity, initialItems, onBack }: FreeRa
   const [rankedItemIds, setRankedItemIds] = useState<Set<string>>(new Set())
   
   const [draggedItem, setDraggedItem] = useState<ItemEntity | null>(null)
+  const [dragOverItemId, setDragOverItemId] = useState<string | null>(null)
   const [showGraphViz, setShowGraphViz] = useState(false)
   const [showPublishModal, setShowPublishModal] = useState(false)
 
@@ -73,10 +74,15 @@ export function FreeRankingPage({ rankListEntity, initialItems, onBack }: FreeRa
     // Add to ranked area if not already there
     if (!rankedItemIds.has(draggedItem.id)) {
       setRankedItemIds(new Set([...rankedItemIds, draggedItem.id]))
-      // Set default score of 0 when first dropped
-      if (!itemScores.has(draggedItem.id)) {
-        setItemScores(new Map(itemScores.set(draggedItem.id, 0)))
+      // When dropping into the area (not on a specific item), place at bottom
+      // Use midpoint between 0 and the lowest score, or just 0 if no items
+      const existingScores = Array.from(itemScores.values()).filter(s => s !== undefined)
+      let scoreToAssign = 0
+      if (existingScores.length > 0) {
+        const minScore = Math.min(...existingScores)
+        scoreToAssign = Math.round(((0 + minScore) / 2) * 100) / 100
       }
+      setItemScores(new Map(itemScores.set(draggedItem.id, scoreToAssign)))
     }
     
     setDraggedItem(null)
@@ -96,6 +102,79 @@ export function FreeRankingPage({ rankListEntity, initialItems, onBack }: FreeRa
     setItemScores(newScores)
     
     setDraggedItem(null)
+    setDragOverItemId(null)
+  }
+
+  const handleDragEnterItem = (item: ItemEntity) => {
+    if (!draggedItem || draggedItem.id === item.id) return
+    setDragOverItemId(item.id)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverItemId(null)
+  }
+
+  const handleDropOnItem = (targetItem: ItemEntity) => {
+    if (!draggedItem || draggedItem.id === targetItem.id) {
+      setDragOverItemId(null)
+      return
+    }
+
+    // Find the sorted list of ranked items
+    const sortedItems = [...getRankedItems()].sort((a, b) => {
+      const scoreA = itemScores.get(a.id)
+      const scoreB = itemScores.get(b.id)
+      const numA = scoreA !== undefined ? scoreA : 0
+      const numB = scoreB !== undefined ? scoreB : 0
+      return numB - numA
+    })
+    
+    const draggedIndex = sortedItems.findIndex(item => item.id === draggedItem.id)
+    const targetIndex = sortedItems.findIndex(item => item.id === targetItem.id)
+    
+    // Check if item is already in the correct position (directly above target)
+    if (draggedIndex !== -1 && draggedIndex === targetIndex - 1) {
+      // Already in position, don't change score
+      setDraggedItem(null)
+      setDragOverItemId(null)
+      return
+    }
+    
+    const itemAbove = targetIndex > 0 ? sortedItems[targetIndex - 1] : null
+    
+    // Get the target's score (the item below where we're inserting)
+    const targetScore = itemScores.get(targetItem.id)
+    const scoreBelow = targetScore !== undefined ? targetScore : 0
+    
+    // Calculate midpoint between item above and target item
+    let scoreToAssign: number
+    if (itemAbove && itemAbove.id !== draggedItem.id) {
+      const scoreAbove = itemScores.get(itemAbove.id)
+      const numAbove = scoreAbove !== undefined ? scoreAbove : 0
+      // Midpoint between above and below (rounded to 2 decimal places)
+      scoreToAssign = Math.round(((numAbove + scoreBelow) / 2) * 100) / 100
+    } else if (!itemAbove) {
+      // Dropping at the top - use midpoint between 100 and target item (rounded to 2 decimal places)
+      scoreToAssign = Math.round(((100 + scoreBelow) / 2) * 100) / 100
+    } else {
+      // itemAbove is the dragged item itself, so we're dropping in the same spot
+      setDraggedItem(null)
+      setDragOverItemId(null)
+      return
+    }
+
+    // Update the dragged item's score
+    const newScores = new Map(itemScores)
+    newScores.set(draggedItem.id, scoreToAssign)
+    setItemScores(newScores)
+
+    // Ensure the item is in ranked area
+    if (!rankedItemIds.has(draggedItem.id)) {
+      setRankedItemIds(new Set([...rankedItemIds, draggedItem.id]))
+    }
+
+    setDraggedItem(null)
+    setDragOverItemId(null)
   }
 
   const handleScoreChange = (itemId: string, value: string) => {
@@ -107,7 +186,9 @@ export function FreeRankingPage({ rankListEntity, initialItems, onBack }: FreeRa
     } else {
       const numValue = parseFloat(value)
       if (!isNaN(numValue) && numValue >= 0) {
-        setItemScores(new Map(itemScores.set(itemId, numValue)))
+        // Round to 2 decimal places
+        const roundedValue = Math.round(numValue * 100) / 100
+        setItemScores(new Map(itemScores.set(itemId, roundedValue)))
       }
     }
   }
@@ -273,6 +354,9 @@ export function FreeRankingPage({ rankListEntity, initialItems, onBack }: FreeRa
         <div className="ranking-instructions">
           <h2>Drag & Drop with Custom Scores</h2>
           <p>Drag items to the ranking area, then assign custom scores (0 or higher). Higher scores = better ranking.</p>
+          <p style={{ fontSize: '0.95rem', marginTop: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+            💡 Tip: Drop items onto others to reorder (score = midpoint between neighbors). Drop at top for max 100, bottom for min 0!
+          </p>
         </div>
 
         <div className="ranked-area-section">
@@ -287,14 +371,19 @@ export function FreeRankingPage({ rankListEntity, initialItems, onBack }: FreeRa
             )}
             {sortedRankedItems.map(item => {
               const score = itemScores.get(item.id)
-              const displayValue = score !== undefined ? score : ''
+              const displayValue = score !== undefined ? score.toFixed(2) : ''
+              const isDraggedOver = dragOverItemId === item.id
               
               return (
                 <div
                   key={item.id}
-                  className="ranked-item"
+                  className={`ranked-item ${isDraggedOver ? 'drag-over' : ''}`}
                   draggable
                   onDragStart={() => handleDragStart(item)}
+                  onDragEnter={() => handleDragEnterItem(item)}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDropOnItem(item)}
                 >
                   <div className="item-info">
                     <span className="item-emoji">{item.emoji}</span>
